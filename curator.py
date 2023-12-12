@@ -1,6 +1,5 @@
 import spotifyOBJ
 import chatOBJ
-import helper
 
 CHAT_HISTORY_FILE = "C:/Users/miket/OneDrive/Documents/Projects/SongFinder/playlistCurator/chat_history.txt"
 SONGS_FILE = "C:/Users/miket/OneDrive/Documents/Projects/SongFinder/playlistCurator/songs.txt"

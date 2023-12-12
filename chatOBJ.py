@@ -4,13 +4,16 @@ import openai
 import requests
 import json
 import base64
+import typer
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
+app = typer.Typer()
 
 class ChatGPT_Obj:
     def __init__(self):
+        self.openai.api_key = os.getenv("OPENAI_KEY")
         self.message_history = []
 
     def chat(self, inp, role="user"):
