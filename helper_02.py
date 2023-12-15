@@ -1,11 +1,14 @@
 # import necessary modules
 import time, json, requests
-import spotipy, os, dotenv
+import spotipy, os
 from dotenv import load_dotenv
-from spotipy.oauth2 import SpotifyOAuth
+from spotipy.oauth2 import SpotifyOAuth, SpotifyClientCredentials
 from flask import Flask, request, url_for, session, redirect
 load_dotenv()
 
+clientID = os.getenv("CLIENT_ID")
+clientSecret = os.getenv("CLIENT_SECRET")
+userID = "31m7zb6fian3thzhyxhhmekq7rki"
 # initialize Flask app
 app = Flask(__name__)
 
@@ -18,6 +21,8 @@ app.secret_key = 'iaknkjfuf982jkf'
 # set the key for the token info in the session dictionary
 TOKEN_INFO = 'token_info'
 
+#create a spotify client credentials manager
+client_credentials_manager = SpotifyClientCredentials(client_id=clientID, client_secret=clientSecret)
 # route to handle logging in
 @app.route('/')
 def login():
@@ -32,10 +37,6 @@ def redirect_page():
     token_info = create_spotify_oauth().get_access_token(code)
     session[TOKEN_INFO] = token_info
     return redirect(url_for('create_playlist', external = True))
-
-# route to save the Discover Weekly songs to a playlist
-@app.route('/saveDiscoverWeekly')
-def save_discover_weekly():
 
     try:
         token_info = get_token()
@@ -52,10 +53,10 @@ def create_playlist():
             print("User not logged in")
             return redirect('/')
         
-        userID = "31m7zb6fian3thzhyxhhmekq7rki"
+        playlist_name = input("What would you like to name the playlist?\n")
 
         requestBody = json.dumps({
-                "name": "Chat Playlist",
+                "name": playlist_name,
                 "description": "AI_Generated playlist",
                 "public": True
             })
@@ -72,10 +73,37 @@ def create_playlist():
             }
         )
         response_json = response.json()
-        playlist_id = response_json["id"]
+        add_songs_to_playlist(response_json["id"])
 
-        return playlist_id
+        return "Successful"
 
+def add_songs_to_playlist(playlist_id):
+    songs = [
+        {"name": "Sicko Mode", "artist": "Travis Scott"},
+        {"name": "Mask Off", "artist": "Future"},
+        {"name": "Bad and Boujee", "artist": "Migos"},
+        {"name": "Love Sosa", "artist": "Chief Keef"},
+        {"name": "Stir Fry", "artist": "Migos"},
+        {"name": "Pick Up the Phone", "artist": "Young Thug, Travis Scott"},
+        {"name": "Versace", "artist": "Migos"},
+        {"name": "No Limit", "artist": "G-Eazy, A$AP Rocky, Cardi B"},
+        {"name": "Gucci Gang", "artist": "Lil Pump"},
+        {"name": "Powerglide", "artist": "Rae Sremmurd, Juicy J"}
+        ]
+
+
+    sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+
+    for entry in songs:
+        song_name = entry["name"]
+        artist_name = entry["artist"]
+
+        # Example: Search for a track with both song name and artist
+        results = sp.search(q=f"track:{song_name} artist:{artist_name}", type="track", limit=1)
+        if results['tracks']['items']:
+            track = results['tracks']['items'][0]
+            track_uri = track['uri']
+            sp.user_playlist_add_tracks(sp.me()['id'], playlist_id, [track_uri])
 
 # function to get the token info from the session
 def get_token():
@@ -96,10 +124,11 @@ def get_token():
 
 def create_spotify_oauth():
     return SpotifyOAuth(
-        client_id = os.getenv("CLIENT_ID"),
-        client_secret = os.getenv("CLIENT_SECRET"),
+        client_id = clientID,
+        client_secret = clientSecret,
         redirect_uri = url_for('redirect_page', _external=True),
         scope='user-library-read playlist-modify-public playlist-modify-private'
     )
 
-app.run(debug=True)
+if __name__ == "__main__":
+    app.run(debug=True)
