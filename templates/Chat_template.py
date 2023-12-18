@@ -20,7 +20,8 @@ def interactive_chat():
 
     while True:
         prompt = input("You: ")
-        messages.append({"role":"user", "content":prompt})
+        plusPromt =  "return a json with the songs in the format {""name"": "", ""artist"":""only the main artist(s)""}"
+        messages.append({"role":"user", "content":prompt + plusPromt})
         if prompt == "exit":
             typer.echo("ChatGPT: Goodbye!")
             break
@@ -31,5 +32,6 @@ def interactive_chat():
 
         typer.echo(f'ChatGPT: {response["choices"][0]["message"]["content"]}')
         messages.append(response["choices"][0]["message"]["content"])
+        
 if __name__ == "__main__":
     app()
