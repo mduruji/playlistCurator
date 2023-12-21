@@ -1,21 +1,18 @@
 import os
 import typer
+import json
 from openai import OpenAI
 from dotenv import load_dotenv
-from SpotifyApp import spotifyApp  # Import the spotifyApp class from SpotifyApp module
+import SpotifyApp
 
-# Load environment variables from .env file
 load_dotenv()
 
 class ChatApp:
     def __init__(self):
-        # Initialize OpenAI client
         self.client = OpenAI(api_key=os.getenv("OPENAI_KEY"))
 
-        # Initialize Typer app
         self.app = typer.Typer()
 
-        # Define command for interactive chat
         self.app.command()(self.interactive_chat)
 
     def run(self):
@@ -25,43 +22,52 @@ class ChatApp:
     def interactive_chat(self):
         """Interactive CLI tool to interact with chatGPT."""
         typer.echo("Starting interactive chat with chatGPT. Type exit to end the session")
-        messages = []
 
-        while True:
+        try:
             prompt = input("You: ")
-            plus_prompt = "return a json with the songs in the format {""name"": "", ""artist"":""only the main artist(s)""}"
-            messages.append({"role": "user", "content": prompt + plus_prompt})
+            plus_prompt = """return a json with the songs in the format {name:" " , artist: "only the main artist(s)"} using , as a delimiter between songs"""
 
             if prompt.lower() == "exit":
                 typer.echo("ChatGPT: Goodbye!")
-                break
+                return
 
-            # Get response from chatGPT
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo", messages=messages
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": f"{prompt}{plus_prompt}"}]
             )
 
-            # Display chatGPT's response
-            typer.echo(f'ChatGPT: {response["choices"][0]["message"]["content"]}')
+            if 'choices' not in response or not response['choices']:
+                raise ValueError("Invalid response from OpenAI API")
 
-            # Append chatGPT's response to messages
-            messages.append(response["choices"][0]["message"]["content"])
+            json_dict = response.choices[0].message.content
+            typer.echo(f'ChatGPT: {json_dict}')
 
-        # Call the curate method with the last output
-        self.curate(messages[-1])
+            content_as_json = json.loads(json_dict)
+
+            songs = content_as_json.get('songs', [])
+            self.curate(songs)
+
+        except Exception as e:
+            typer.echo(f"Error during interactive chat: {str(e)}")
 
     def curate(self, songs):
         """Curate songs and create a Spotify playlist if requested."""
-        choice = input("Would you like to create a playlist with these songs? ")
-        if choice.lower() == "yes":
-            secret_key = input("Enter a secret key: ")
-            # Create an instance of the spotifyApp class and run the app
-            spotify_app = spotifyApp(secret_key, songs)
-            spotify_app.run()
-        else:
-            return
+        while True:
+            try:
+                choice = input("Would you like to create a playlist with these songs? ")
+                if choice.lower() == "yes":
+                    secret_key = input("Enter a secret key: ")
+                    spotify_app = SpotifyApp.spotifyApp(secret_key, songs)
+                    spotify_app.go()
+                    break 
+                elif choice.lower() == "no":
+                    typer.echo("Exiting interactive chat.")
+                    break 
+                else:
+                    typer.echo("Invalid choice. Please enter 'yes' or 'no'.")
+            except Exception as e:
+                typer.echo(f"Error during playlist creation: {str(e)}")
 
 if __name__ == "__main__":
-    # Create an instance of the ChatApp class and run the app
     chatty = ChatApp()
     chatty.run()

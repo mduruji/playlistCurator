@@ -1,4 +1,3 @@
-# Import necessary modules
 import time
 import json
 import requests
@@ -8,10 +7,9 @@ from dotenv import load_dotenv
 from spotipy.oauth2 import SpotifyOAuth, SpotifyClientCredentials
 from flask import Flask, request, url_for, session, redirect
 
-# Load environment variables from .env file
 load_dotenv()
 
-class SpotifyApp:
+class spotifyApp:
     def __init__(self, secret_key, songs):
         """
         Initialize the SpotifyApp object.
@@ -24,25 +22,22 @@ class SpotifyApp:
         self.client_secret = os.getenv("CLIENT_SECRET")
         self.songs = songs
 
-        # Initialize Flask app
         self.app = Flask(__name__)
         self.app.config['SESSION_COOKIE_NAME'] = 'Spotify Cookie'
         self.app.secret_key = secret_key
         self.TOKEN_INFO = 'token_info'
 
-        # Set up Spotify client credentials manager
         self.client_credentials_manager = SpotifyClientCredentials(
             client_id=self.client_id, client_secret=self.client_secret
         )
 
-        # Define routes
         self.app.route('/')(self.login)
         self.app.route('/redirect')(self.redirect_page)
         self.app.route('/createPlaylist')(self.create_playlist)
 
-    def run(self):
+    def go(self):
         """Run the Flask app."""
-        self.app.run(debug=True)
+        self.app.run(debug=False)
 
     def login(self):
         """Handle the login route."""
@@ -109,7 +104,6 @@ class SpotifyApp:
             song_name = entry["name"]
             artist_name = entry["artist"]
 
-            # Example: Search for a track with both song name and artist
             results = sp.search(q=f"track:{song_name} artist:{artist_name}", type="track", limit=1)
             if results['tracks']['items']:
                 track = results['tracks']['items'][0]
@@ -132,10 +126,8 @@ class SpotifyApp:
         """Get the token info from the session."""
         token_info = session.get(self.TOKEN_INFO, None)
         if not token_info:
-            # If the token info is not found, redirect the user to the login route
             redirect(url_for('login', _external=False))
         
-        # Check if the token is expired and refresh it if necessary
         now = int(time.time())
 
         is_expired = token_info['expires_at'] - now < 60
@@ -153,14 +145,3 @@ class SpotifyApp:
             redirect_uri=url_for('redirect_page', _external=True),
             scope='user-library-read playlist-modify-public playlist-modify-private'
         )
-
-if __name__ == "__main__":
-    # Create an instance of the SpotifyApp class and run the app
-    secret_key = 'your_secret_key'  # Replace with your secret key
-    songs_list = [
-        {"name": "Song1", "artist": "Artist1"},
-        {"name": "Song2", "artist": "Artist2"},
-        # Add more songs as needed
-    ]
-    spotify_app = SpotifyApp(secret_key, songs_list)
-    spotify_app.run()
